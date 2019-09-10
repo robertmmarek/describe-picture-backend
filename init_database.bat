@@ -1,0 +1,2 @@
+set FLASK_APP=describe_picture
+flask init-database
