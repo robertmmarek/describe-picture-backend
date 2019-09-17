@@ -13,21 +13,12 @@ class Resource(db.Model):
         return os.path.isfile(self.filePath)
 
     def resourceURL(self):
-        return url_for('file_upload.resource_detail', id=self.id)
-
-
-class Upload(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    resource_id = db.Column(db.Integer, db.ForeignKey('resource.id'))  
-    resource = db.relationship('Resource', backref=db.backref('upload'))  
+        return url_for('resources.file_detail', id=self.id)
 
 
 class ResourceSchema(Schema):
     id = fields.Integer(dump_only=True)
     filePath = fields.String()
 
-class UploadSchema(Schema):
-    id = fields.Integer(dump_only=True)
-    resource = fields.Nested(ResourceSchema)
 
 

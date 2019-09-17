@@ -5,7 +5,7 @@ import describe_picture
 import shutil
 
 from describe_picture import db, init_database
-from describe_picture.file_upload.models import Upload, Resource
+from describe_picture.resources.models import Resource
 
 TEST_PICTURE = './test_resources/test_picture.png'
 
@@ -22,8 +22,6 @@ def _initial_database(app):
         init_database()
         resource_1 = Resource()
         db.session.add(resource_1)
-        upload_1 = Upload(resource=resource_1)
-        db.session.add(upload_1)
         db.session.commit()
     
 @pytest.fixture
@@ -44,7 +42,7 @@ def test_file_upload(simple_client):
     data = {}
     data['file'] = (io.BytesIO(b'abcdefg'),
                     'test_picture.png')
-    rv = client.post('/file-upload/uploads',
+    rv = client.post('/resources/files',
                      data=data,
                      content_type='multipart/form-data',
                      follow_redirects=True)

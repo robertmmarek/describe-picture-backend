@@ -1,14 +1,14 @@
 import os
 
 from flask import Blueprint, json, jsonify, abort, request, current_app, url_for
-from .models import Upload, Resource, UploadSchema, ResourceSchema
+from .models import Resource, ResourceSchema
 from describe_picture import db
 
-file_upload_bp = Blueprint('file_upload', __name__, url_prefix='/file-upload')
+resources_bp = Blueprint('resources', __name__, url_prefix='/resources')
 
 #Upload
 
-@file_upload_bp.route('/uploads', methods=['GET'])
+@resources_bp.route('/files', methods=['GET'])
 def upload_list():
     uploads = Upload.query.all()
     return jsonify({
@@ -17,7 +17,7 @@ def upload_list():
         }
     })
 
-@file_upload_bp.route('/uploads/<int:id>', methods=['GET'])
+@resources_bp.route('/files/<int:id>', methods=['GET'])
 def upload_get(id):
     upload = Upload.query.filter_by(id=id).first()
 
@@ -40,13 +40,7 @@ def _create_resource(filepath):
     db.session.add(new_resource)
     return new_resource
 
-def _create_upload(filepath, resource):
-    new_upload = Upload()
-    new_upload.resource = resource
-    db.session.add(new_upload)
-    return new_upload
-
-@file_upload_bp.route('/uploads', methods=['POST'])
+@resources_bp.route('/files', methods=['POST'])
 def upload_create():
     if 'file' not in request.files:
         abort(400)
@@ -61,7 +55,6 @@ def upload_create():
     try:
         file.save(filepath)
         new_resource = _create_resource(filepath)
-        new_upload = _create_upload(filepath, new_resource)
         db.session.commit()
     except Exception as e:
         print(e)
@@ -71,23 +64,23 @@ def upload_create():
         return jsonify({
             'data': {
                 'resourceURL': new_resource.resourceURL(),
-                'upload': UploadSchema().dump(new_upload)
+                'resource': ResourceSchema().dump(new_resource)
             }
         })
     else:
         abort(500)
     
-def upload_get(request):
+def file_get(request):
     pass
 
-def upload_update(request):
+def file_update(request):
     pass
 
-def upload_delete(request):
+def file_delete(request):
     pass
 
-@file_upload_bp.route('/resources/<int:id>', methods=['GET', 'PUT', 'DELETE'])
-def resource_detail():
+@resources_bp.route('/files/<int:id>', methods=['GET', 'PUT', 'DELETE'])
+def file_detail():
     response = None
     if request.method == 'GET':
         response = upload_get(request)

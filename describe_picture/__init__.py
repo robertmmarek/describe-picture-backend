@@ -9,7 +9,7 @@ from flask.cli import with_appcontext
 db = SQLAlchemy()
 
 def init_database():
-    from describe_picture.file_upload.models import Upload, Resource
+    from describe_picture.resources.models import Resource
     db.drop_all()
     db.create_all()
 
@@ -21,8 +21,8 @@ def create_app():
     if 'SETTINGS_FILE' in os.environ:
         app.config.from_envvar('SETTINGS_FILE')
 
-    from describe_picture.file_upload import file_upload_bp
-    app.register_blueprint(file_upload_bp)
+    from describe_picture.resources import resources_bp
+    app.register_blueprint(resources_bp)
 
 
     @app.cli.command('init-database')
