@@ -64,7 +64,7 @@ def upload_create():
         return jsonify({
             'data': {
                 'resourceURL': new_resource.resourceURL(),
-                'resource': ResourceSchema(exclude=['filePath']).dump(new_resource)
+                'resource': ResourceSchema().dump(new_resource)
             }
         })
     else:
