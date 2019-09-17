@@ -13,7 +13,7 @@ def upload_list():
     uploads = Upload.query.all()
     return jsonify({
         'data': {
-            'uploads': UploadSchema().dump(uploads, many=True)
+            'uploads': UploadSchema(exclude=['filePath']).dump(uploads, many=True)
         }
     })
 
