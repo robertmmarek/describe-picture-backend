@@ -1,7 +1,7 @@
 import os
 
 from flask import Blueprint, json, jsonify, abort, request, current_app, url_for
-from .models import Resource, ResourceSchema
+from .models import Resource, ResourceSchema, FileTypes
 from describe_picture import db
 
 resources_bp = Blueprint('resources', __name__, url_prefix='/resources')
@@ -10,20 +10,22 @@ resources_bp = Blueprint('resources', __name__, url_prefix='/resources')
 
 @resources_bp.route('/files', methods=['GET'])
 def upload_list():
-    uploads = Upload.query.all()
+    uploads = Resource.query.all()
     return jsonify({
         'data': {
-            'uploads': UploadSchema(exclude=['filePath']).dump(uploads, many=True)
+            'resources': ResourceSchema().dump(uploads, many=True)
         }
     })
 
 @resources_bp.route('/files/<int:id>', methods=['GET'])
 def upload_get(id):
-    upload = Upload.query.filter_by(id=id).first()
+    upload = Resource.query.filter_by(id=id).first()
 
     if upload is not None:
         return jsonify({
-            'data': UploadSchema().dump(upload)
+            'data': {
+                'resource': ResourceSchema().dump(upload)
+            }
         })
     else:
         abort(404)
@@ -55,6 +57,18 @@ def upload_create():
     try:
         file.save(filepath)
         new_resource = _create_resource(filepath)
+        file_type = file.content_type
+        image_file_types = ['image/png',
+                            'image/jpg',
+                            'image/bmp',
+                            'image/gif',
+                            ]
+
+        if file_type in image_file_types:
+            new_resource.resourceType = FileTypes.IMAGE
+        else:
+            new_resource.resourceType = FileTypes.OTHER
+
         db.session.commit()
     except Exception as e:
         print(e)
@@ -70,24 +84,72 @@ def upload_create():
     else:
         abort(500)
     
-def file_get(request):
-    pass
+def file_get(request, id):
+    selected = Resource.query.filter_by(id=id).first()
+    if selected is not None:
+        return jsonify({
+            'data': {
+                'resource': ResourceSchema().dump(selected)
+            }
+        })
+    else:
+        abort(404)
 
-def file_update(request):
-    pass
+#required structure of request json:
+# {
+#    data: {
+#       fields of resource data structure
+#   }
+# }
+def file_update(request, id):
+    selected = Resource.query.filter_by(id=id).first()
+    if selected is not None:
+        prev = ResourceSchema().dump(selected)
+        new_object = ResourceSchema(exclude=['id']).load(request.json['data'], partial=True)
 
-def file_delete(request):
-    pass
+        for key, val in new_object.items():
+            if key in selected.__dict__:
+                setattr(selected, key, val)
+
+        new = ResourceSchema().dump(selected)
+        db.session.commit()
+
+        return jsonify({
+            'data': {
+                'old_resource': prev,
+                'new_resource': new
+            }
+        })
+    else:
+        abort(404)
+
+def file_delete(request, id):
+    selected = Resource.query.filter_by(id=id).first()
+    if selected is not None:
+        if os.path.isfile(selected.filePath):
+            os.remove(selected.filePath)
+
+        old = ResourceSchema().dump(selected)
+        db.session.delete(selected)
+        db.session.commit()
+
+        return jsonify({
+            'data': {
+                'deleted': old,
+            }
+        })
+    else:
+        abort(404)
 
 @resources_bp.route('/files/<int:id>', methods=['GET', 'PUT', 'DELETE'])
-def file_detail():
+def file_detail(id):
     response = None
     if request.method == 'GET':
-        response = upload_get(request)
+        response = file_get(request, id)
     elif request.method == 'PUT':
-        response = upload_update(request)
+        response = file_update(request, id)
     elif request.method == 'DELETE':
-        response = upload_delete(request)
+        response = file_delete(request, id)
 
     return response
 

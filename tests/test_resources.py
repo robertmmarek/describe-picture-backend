@@ -3,9 +3,10 @@ import os
 import io
 import describe_picture
 import shutil
+import json
 
 from describe_picture import db, init_database
-from describe_picture.resources.models import Resource
+from describe_picture.resources.models import Resource, FileTypes
 
 TEST_PICTURE = './test_resources/test_picture.png'
 
@@ -21,7 +22,14 @@ def _initial_database(app):
     with app.app_context():
         init_database()
         resource_1 = Resource()
+        resource_1.filePath = 'test_path.jpg'
+        resource_1.resourceType = FileTypes.IMAGE
         db.session.add(resource_1)
+
+        resource_2 = Resource()
+        resource_2.filePath = 'test_path.something'
+        resource_2.resourceType = FileTypes.OTHER
+        db.session.add(resource_2)
         db.session.commit()
     
 @pytest.fixture
@@ -48,6 +56,41 @@ def test_file_upload(simple_client):
                      follow_redirects=True)
     assert rv.status_code == 200
     assert os.path.isfile(upload_path)
+
+def test_file_list(simple_client):
+    client = simple_client['client']
+    rv = client.get('/resources/files')
+    assert rv.status_code == 200
+    assert len(rv.json['data']['resources']) == 2
+   
+def test_file_get_detail(simple_client):
+    client = simple_client['client']
+    rv = client.get('/resources/files/1')
+    assert rv.status_code == 200
+    assert rv.json['data']['resource']['id'] == 1
+
+def test_file_delete(simple_client):
+    client = simple_client['client']
+    rv = client.delete('/resources/files/1')
+    assert rv.status_code == 200
+    assert rv.json['data']['deleted']['id'] == 1
+
+def test_file_update(simple_client):
+    client = simple_client['client']
+    data = {'data': {
+        'filePath': 'modified_path.jpg',
+        'resourceType': 'IMAGE'
+    }}
+    rv = client.put('/resources/files/1', 
+                    data = json.dumps(data),
+                    content_type='application/json')
+    assert rv.status_code == 200
+    assert rv.json['data']['new_resource']['filePath'] \
+           != rv.json['data']['old_resource']['filePath']
+    assert rv.json['data']['new_resource']['filePath'] == 'modified_path.jpg'
+
+
+
 
 
 
