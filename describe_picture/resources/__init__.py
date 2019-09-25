@@ -1,30 +1,33 @@
 import os
 
-from flask import Blueprint, json, jsonify, abort, request, current_app, url_for
+from flask import Blueprint, json, jsonify, abort, request, current_app, url_for, current_app
 from .models import Resource, ResourceSchema, FileTypes
 from describe_picture import db
+from describe_picture.auth.util import combine_auth, basic_auth
 
 resources_bp = Blueprint('resources', __name__, url_prefix='/resources')
 
 #Upload
-
 @resources_bp.route('/files', methods=['GET'])
-def upload_list():
-    uploads = Resource.query.all()
+@combine_auth(basic_auth)
+def resource_list(*args):
+    resources = Resource.query.all()
+    json_rsrc = ResourceSchema().dump(resources, many=True)
     return jsonify({
         'data': {
-            'resources': ResourceSchema().dump(uploads, many=True)
+            'resources': json_rsrc
         }
     })
 
 @resources_bp.route('/files/<int:id>', methods=['GET'])
-def upload_get(id):
-    upload = Resource.query.filter_by(id=id).first()
+@combine_auth(basic_auth)
+def resource_get(id):
+    resource = Resource.query.filter_by(id=id).first()
 
-    if upload is not None:
+    if resource is not None:
         return jsonify({
             'data': {
-                'resource': ResourceSchema().dump(upload)
+                'resource': ResourceSchema().dump(resource)
             }
         })
     else:
@@ -43,7 +46,8 @@ def _create_resource(filepath):
     return new_resource
 
 @resources_bp.route('/files', methods=['POST'])
-def upload_create():
+@combine_auth(basic_auth)
+def resource_create(*args):
     if 'file' not in request.files:
         abort(400)
 
@@ -83,7 +87,8 @@ def upload_create():
         })
     else:
         abort(500)
-    
+
+@combine_auth(basic_auth)
 def file_get(request, id):
     selected = Resource.query.filter_by(id=id).first()
     if selected is not None:
@@ -101,6 +106,7 @@ def file_get(request, id):
 #       fields of resource data structure
 #   }
 # }
+@combine_auth(basic_auth)
 def file_update(request, id):
     selected = Resource.query.filter_by(id=id).first()
     if selected is not None:
@@ -123,6 +129,7 @@ def file_update(request, id):
     else:
         abort(404)
 
+@combine_auth(basic_auth)
 def file_delete(request, id):
     selected = Resource.query.filter_by(id=id).first()
     if selected is not None:
@@ -140,6 +147,7 @@ def file_delete(request, id):
         })
     else:
         abort(404)
+
 
 @resources_bp.route('/files/<int:id>', methods=['GET', 'PUT', 'DELETE'])
 def file_detail(id):
